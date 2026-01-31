@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💰 DivvyDo — Roommate Expense Manager
+# DivvyDo — Roommate Expense Manager
 
 ### Penny-perfect expense splitting for shared households
 
@@ -12,15 +12,15 @@ Split bills, track balances, and settle up—built for roommates who don't want 
 
 ---
 
-## 🎯 Overview
+## Overview
 
 **DivvyDo** is a production-ready expense management app designed for roommates and shared households. No more awkward conversations about who owes what—track expenses, split bills using 5 different methods, and settle balances with confidence.
 
 ### The Problem
-- 💸 Manual expense tracking in spreadsheets is error-prone
-- 🧮 Calculating fair splits across multiple people is tedious
-- 💰 Tracking who owes whom becomes messy with multiple transactions
-- 📱 Existing apps are overcomplicated or charge fees
+- Manual expense tracking in spreadsheets is error-prone
+- Calculating fair splits across multiple people is tedious
+- Tracking who owes whom becomes messy with multiple transactions
+- Existing apps are overcomplicated or charge fees
 
 ### The Solution
 DivvyDo provides:
@@ -32,13 +32,13 @@ DivvyDo provides:
 
 ---
 
-## 🎬 Demo
+## Demo
 
-### 📹 Video Walkthrough
+### Video Walkthrough
 
 > **Coming Soon**: 90-second demo showing expense splitting and balance calculation
 
-### 📸 Screenshots
+### Screenshots
 
 **Expense Split Interface**
 ![Expense Splitting](./docs/screenshots/expense-split.png)
@@ -52,15 +52,15 @@ DivvyDo provides:
 ![Admin Panel](./docs/screenshots/admin-tools.png)
 *CSV exports, people merging, and invite management*
 
-### 🚀 Try It Locally
+### Try It Locally
 
 Follow the [Getting Started](#-getting-started) guide below to run locally.
 
 ---
 
-## ✨ Features
+## Features
 
-### 💸 Expense Management
+### Expense Management
 
 **5 Split Methods** — Handle any splitting scenario:
 1. **Equal**: Split evenly among N people (e.g., $100 ÷ 4 = $25 each)
@@ -83,7 +83,7 @@ Follow the [Getting Started](#-getting-started) guide below to run locally.
 - Save frequently used expenses (rent, utilities, subscriptions)
 - Manual generation (automated cron coming soon)
 
-### 📊 Balance Tracking
+### Balance Tracking
 
 **Net Balances**:
 - See who owes money overall vs. who is owed
@@ -97,7 +97,7 @@ Follow the [Getting Started](#-getting-started) guide below to run locally.
 - Mark balances as settled when paid
 - Keeps audit trail of all transactions
 
-### 🏠 Household Management
+### Household Management
 
 **Groups**:
 - Personal group for individual expenses
@@ -115,7 +115,7 @@ Follow the [Getting Started](#-getting-started) guide below to run locally.
 - **Merge People**: Combine duplicate entries with audit logs
 - **Placeholder Management**: Convert email placeholders to real users
 
-### ✅ Task Management
+### Task Management
 
 **Basic Task Tracking**:
 - Create, edit, and delete tasks
@@ -126,7 +126,7 @@ Follow the [Getting Started](#-getting-started) guide below to run locally.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Tech Stack
 
@@ -210,7 +210,7 @@ export function calculateSplit(
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -281,7 +281,7 @@ Visit `http://localhost:5173`
 
 ---
 
-## 🧪 Testing
+## Testing
 
 **Test Suite**: 25 test files with comprehensive coverage
 
@@ -340,7 +340,7 @@ describe('Equal Split Method', () => {
 
 ---
 
-## 🛠️ Development Scripts
+## Development Scripts
 
 ```bash
 npm run dev          # Start dev server (Vite)
@@ -354,7 +354,7 @@ npm run test:coverage # Generate coverage report
 
 ---
 
-## 📦 Deployment
+## Deployment
 
 ### Deploy to Netlify
 
@@ -375,17 +375,17 @@ npm run build
 
 ---
 
-## 🚧 Roadmap
+## Roadmap
 
 ### Current Progress
 
-✅ Auth + profile (signup, signin, password reset)
-✅ Groups (personal + household, switcher, admin controls)
-✅ Tasks (create/edit/delete, assignees, filters, recurring)
-✅ Expenses (5 split methods, receipts, recurring, reports)
-✅ Balances (net + pairwise, settlement recording)
-✅ Admin tools (invites, placeholders, merge, CSV exports)
-✅ Test suite (25 test files)
+Auth + profile (signup, signin, password reset)
+Groups (personal + household, switcher, admin controls)
+Tasks (create/edit/delete, assignees, filters, recurring)
+Expenses (5 split methods, receipts, recurring, reports)
+Balances (net + pairwise, settlement recording)
+Admin tools (invites, placeholders, merge, CSV exports)
+Test suite (25 test files)
 
 ### Not Yet Implemented
 
@@ -398,13 +398,13 @@ npm run build
 
 ---
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Harish Manoharan**
 - GitHub: [@harishm17](https://github.com/harishm17)
@@ -414,7 +414,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Supabase](https://supabase.com) - Backend infrastructure
 - [Vite](https://vitejs.dev/) - Build tooling
