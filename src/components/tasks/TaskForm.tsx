@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button, Input, Select, cn } from '../common/DesignSystem';
+import { Button, Input, Select } from '../common/DesignSystem';
+import { TaskSplittingHelp, RecurringHelp } from '../common/HelpTooltip';
 import type { Task } from '../../lib/api/tasks';
 import type { RecurringFrequency } from '../../lib/recurring';
 import { getTodayDateString } from '../../lib/recurring';
@@ -110,18 +111,23 @@ export function TaskForm({
                     onChange={(e) => setDueDate(e.target.value)}
                     required={isRecurring}
                 />
-                <Select
-                    label="Assign To"
-                    value={assignedToPersonId}
-                    onChange={(e) => setAssignedToPersonId(e.target.value)}
-                >
-                    <option value="">Unassigned</option>
-                    {people.map((person) => (
-                        <option key={person.id} value={person.id}>
-                            {person.display_name}
-                        </option>
-                    ))}
-                </Select>
+                <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                        <Select
+                            label="Assign To"
+                            value={assignedToPersonId}
+                            onChange={(e) => setAssignedToPersonId(e.target.value)}
+                        >
+                            <option value="">Unassigned</option>
+                            {people.map((person) => (
+                                <option key={person.id} value={person.id}>
+                                    {person.display_name}
+                                </option>
+                            ))}
+                        </Select>
+                    </div>
+                    <TaskSplittingHelp />
+                </div>
             </div>
 
             {mode === 'create' && (
@@ -139,6 +145,7 @@ export function TaskForm({
                             className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                         />
                         Recurring Schedule
+                        <RecurringHelp />
                     </label>
 
                     {isRecurring && (

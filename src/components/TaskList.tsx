@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import PullToRefresh from 'react-pull-to-refresh';
 import type { Task } from '../lib/api/tasks';
 import { createTask, deleteTask, fetchTasks, updateTask } from '../lib/api/tasks';
 import { fetchGroupPeople } from '../lib/api/groupPeople';
@@ -17,6 +18,20 @@ type TaskListProps = {
   onCancel: () => void;
 };
 
+// Mutation data types
+interface CreateTaskMutationData {
+  mode: 'single' | 'recurring';
+  title: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high';
+  dueDate?: string;
+  assignedToPersonId?: string;
+  startDate?: string;
+  endDate?: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  interval: string;
+}
+
 export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -30,6 +45,21 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
   // Edit State
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Listen for FAB events
+  useEffect(() => {
+    const handleFabNewTask = () => {
+      onCancel(); // Close any existing forms
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        setFormError(null);
+        setEditingTaskId(null);
+      }, 100);
+    };
+
+    window.addEventListener('fab-new-task', handleFabNewTask);
+    return () => window.removeEventListener('fab-new-task', handleFabNewTask);
+  }, [onCancel]);
 
   // Group People
   const { data: people = [] } = useQuery({
@@ -57,7 +87,7 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: CreateTaskMutationData) => {
       if (!user?.id) throw new Error('Missing user session.');
       const { mode, title, description, priority, dueDate, assignedToPersonId, startDate, endDate, frequency, interval } = data;
 
@@ -66,9 +96,9 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
           groupId,
           title: title.trim(),
           description: description?.trim() || undefined,
-          frequency,
-          interval: Number(interval),
-          nextOccurrence: startDate,
+          frequency: frequency || 'weekly',
+          interval: Number(interval || 1),
+          nextOccurrence: startDate || new Date().toISOString().split('T')[0],
           endDate: endDate || null,
           assignedToPersonId: assignedToPersonId || null,
           createdBy: user.id,
@@ -132,6 +162,24 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
 
   const hasFilters = Boolean(searchQuery.trim()) || statusFilter !== 'all' || priorityFilter !== 'all' || assigneeFilter !== 'all';
 
+  // Memoized callbacks for performance
+  const handleToggleStatus = useCallback((task: Task) => {
+    const nextStatus = task.status === 'completed' ? 'todo' : 'completed';
+    updateMutation.mutate({ taskId: task.id, updates: { status: nextStatus } });
+  }, [updateMutation]);
+
+  const handleEdit = useCallback((task: Task) => {
+    setEditingTaskId(task.id);
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
+    deleteMutation.mutate(id);
+  }, [deleteMutation]);
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['tasks', groupId] });
+  }, [queryClient, groupId]);
+
   return (
     <section className="space-y-6">
       {/* Creation Form */}
@@ -178,7 +226,7 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
       {!isLoading && tasks && tasks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="rounded-full bg-slate-50 p-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-slate-400" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-slate-400" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
           </div>
           <p className="mt-4 text-sm font-medium text-slate-900">No tasks yet</p>
           <p className="text-sm text-slate-500">Get started by creating a new task.</p>
@@ -190,48 +238,47 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
       )}
 
       {/* List */}
-      <ul className="space-y-3">
-        <AnimatePresence mode="popLayout">
-          {filteredTasks.map((task) => (
-            editingTaskId === task.id ? (
-              <li key={task.id} className="mb-4">
-                <TaskForm
-                  key={`edit-${task.id}`}
-                  mode="edit"
-                  people={people}
-                  initialData={task}
-                  onCancel={() => setEditingTaskId(null)}
-                  onSubmit={(data) => {
-                    // data contains form fields. Map them to update object.
-                    const updates: Partial<Task> = {
-                      title: data.title,
-                      description: data.description || null,
-                      priority: data.priority,
-                      due_date: data.dueDate || null,
-                      assigned_to_person_id: data.assignedToPersonId || null,
-                    };
-                    updateMutation.mutate({ taskId: task.id, updates });
-                  }}
-                  isSubmitting={updateMutation.isPending}
+      <PullToRefresh onRefresh={handleRefresh}>
+        <ul className="space-y-3">
+          <AnimatePresence mode="popLayout">
+            {filteredTasks.map((task) => (
+              editingTaskId === task.id ? (
+                <li key={task.id} className="mb-4">
+                  <TaskForm
+                    key={`edit-${task.id}`}
+                    mode="edit"
+                    people={people}
+                    initialData={task}
+                    onCancel={() => setEditingTaskId(null)}
+                    onSubmit={(data) => {
+                      // data contains form fields. Map them to update object.
+                      const updates: Partial<Task> = {
+                        title: data.title,
+                        description: data.description || null,
+                        priority: data.priority,
+                        due_date: data.dueDate || null,
+                        assigned_to_person_id: data.assignedToPersonId || null,
+                      };
+                      updateMutation.mutate({ taskId: task.id, updates });
+                    }}
+                    isSubmitting={updateMutation.isPending}
+                  />
+                </li>
+              ) : (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  assigneeName={peopleById.get(task.assigned_to_person_id ?? '') ?? 'Unassigned'}
+                  onToggleStatus={handleToggleStatus}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  isUpdating={updateMutation.isPending}
                 />
-              </li>
-            ) : (
-              <TaskItem
-                key={task.id}
-                task={task}
-                assigneeName={peopleById.get(task.assigned_to_person_id ?? '') ?? 'Unassigned'}
-                onToggleStatus={(t) => {
-                  const nextStatus = t.status === 'completed' ? 'todo' : 'completed';
-                  updateMutation.mutate({ taskId: t.id, updates: { status: nextStatus } });
-                }}
-                onEdit={(t) => setEditingTaskId(t.id)}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                isUpdating={updateMutation.isPending}
-              />
-            )
-          ))}
-        </AnimatePresence>
-      </ul>
+              )
+            ))}
+          </AnimatePresence>
+        </ul>
+      </PullToRefresh>
     </section>
   );
 }

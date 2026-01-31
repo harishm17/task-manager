@@ -1,22 +1,56 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button, Input, Select, cn } from '../common/DesignSystem';
+import { ExpenseSplittingHelp, RecurringHelp } from '../common/HelpTooltip';
 import type { ExpenseCategory } from '../../lib/api/expenses';
 import {
     calculateEqualSplits,
-    calculatePercentageSplits,
-    calculateShareSplits,
     type SplitMethod
 } from '../../lib/api/expenses';
 import type { RecurringFrequency } from '../../lib/recurring';
 import { getTodayDateString } from '../../lib/recurring';
+import { getCurrencyFormatter } from '../../lib/formatters';
+
+// Define the expense form data structure
+export interface ExpenseFormData {
+    mode: 'single' | 'recurring';
+    description: string;
+    amount: string;
+    expenseDate: string;
+    categoryId: string | null;
+    paidByPersonId: string;
+    splitMethod: SplitMethod;
+    participantIds: string[];
+    customSplits: Record<string, string>;
+    adjustmentFromPersonId?: string;
+    notes?: string;
+    isRecurring?: boolean;
+    frequency?: RecurringFrequency;
+    interval?: string;
+    endDate?: string;
+    receiptFile?: File | null;
+}
+
+// Define initial data structure for editing
+export interface ExpenseInitialData {
+    description?: string;
+    amount_cents?: number;
+    expense_date?: string;
+    category_id?: string;
+    paid_by_person_id?: string;
+    split_method?: string; // Using string since Expense type uses string
+    participant_ids?: string[];
+    custom_splits?: Record<string, number>;
+    adjustment_from_person_id?: string;
+    notes?: string;
+}
 
 type ExpenseFormProps = {
     people: Array<{ id: string; display_name: string }>;
     categories: ExpenseCategory[];
     currency: string;
-    onSubmit: (data: any) => void;
+    onSubmit: (data: ExpenseFormData) => void;
     onCancel: () => void;
-    initialData?: any;
+    initialData?: ExpenseInitialData;
     mode?: 'create' | 'edit';
     isSubmitting?: boolean;
     error?: string | null;
@@ -49,26 +83,36 @@ export function ExpenseForm({
 }: ExpenseFormProps) {
     // Basic Fields
     const [description, setDescription] = useState(initialData?.description ?? '');
-    const [amount, setAmount] = useState(initialData?.amount ? (initialData.amount_cents / 100).toFixed(2) : '');
+    const [amount, setAmount] = useState(initialData?.amount_cents ? (initialData.amount_cents / 100).toFixed(2) : '');
     const [expenseDate, setExpenseDate] = useState(initialData?.expense_date ?? getTodayDateString());
     const [categoryId, setCategoryId] = useState(initialData?.category_id ?? '');
     const [paidByPersonId, setPaidByPersonId] = useState(initialData?.paid_by_person_id ?? people[0]?.id ?? '');
     const [notes, setNotes] = useState(initialData?.notes ?? '');
 
     // Split State
-    const [splitMethod, setSplitMethod] = useState<SplitMethod>(initialData?.split_method ?? 'equal');
+    const [splitMethod, setSplitMethod] = useState<SplitMethod>((initialData?.split_method as SplitMethod) ?? 'equal');
     const [participantIds, setParticipantIds] = useState<string[]>(initialData?.participant_ids ?? people.map(p => p.id));
-    const [customSplits, setCustomSplits] = useState<Record<string, string>>(initialData?.custom_splits ?? {});
+    const [customSplits, setCustomSplits] = useState<Record<string, string>>(() => {
+        if (initialData?.custom_splits) {
+            // Convert number values to string
+            const converted: Record<string, string> = {};
+            for (const [key, val] of Object.entries(initialData.custom_splits)) {
+                converted[key] = String(val);
+            }
+            return converted;
+        }
+        return {};
+    });
     const [adjustmentFromPersonId, setAdjustmentFromPersonId] = useState(initialData?.adjustment_from_person_id ?? people[0]?.id ?? '');
 
     // Recurring State
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('monthly');
-    const [recurringInterval, setRecurringInterval] = useState('1');
-    const [recurringEndDate, setRecurringEndDate] = useState('');
+    const [recurringInterval] = useState('1');
+    const [recurringEndDate] = useState('');
 
-    // File
-    const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    // File (placeholder for future receipt upload)
+    const [_receiptFile] = useState<File | null>(null);
 
     const descriptionInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,11 +127,6 @@ export function ExpenseForm({
         const amountValue = Number(value);
         if (Number.isNaN(amountValue)) return null;
         return Math.round(amountValue * 100);
-    };
-
-    const parseNumericInput = (value: string) => {
-        const num = Number(value);
-        return Number.isNaN(num) ? null : num;
     };
 
     const formatCents = (cents: number) => (cents / 100).toFixed(2);
@@ -133,7 +172,7 @@ export function ExpenseForm({
         e.preventDefault();
         // Validation handled by HTML5 mostly, but can add more here
 
-        const payload = {
+        const payload: ExpenseFormData = {
             mode: isRecurring ? 'recurring' : 'single',
             description,
             amount,
@@ -145,7 +184,7 @@ export function ExpenseForm({
             participantIds,
             customSplits,
             adjustmentFromPersonId,
-            receiptFile,
+            receiptFile: _receiptFile,
             frequency: recurringFrequency,
             interval: recurringInterval,
             endDate: recurringEndDate,
@@ -191,7 +230,7 @@ export function ExpenseForm({
                     <label className="text-xs font-semibold text-slate-700 ml-1">Amount</label>
                     <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(0).replace(/\d/g, '').replace(/\./g, '')}
+                            {getCurrencyFormatter(currency).format(0).replace(/\d/g, '').replace(/\./g, '')}
                         </span>
                         <input
                             type="number"
@@ -240,7 +279,10 @@ export function ExpenseForm({
             {/* Split Section */}
             <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-semibold text-slate-700">Split Method</label>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-semibold text-slate-700">Split Method</label>
+                        <ExpenseSplittingHelp />
+                    </div>
                     <div className="flex bg-slate-100 rounded-lg p-1">
                         {(['equal', 'exact', 'percentage', 'shares', 'adjustment'] as SplitMethod[]).map(m => (
                             <button
@@ -331,6 +373,7 @@ export function ExpenseForm({
                             className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                         />
                         Recurring Expense
+                        <RecurringHelp />
                     </label>
                     {isRecurring && (
                         <div className="flex gap-2">

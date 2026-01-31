@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useState, memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSwipeable } from 'react-swipeable';
 import { Avatar, Button, cn } from '../common/DesignSystem';
 import type { Expense } from '../../lib/api/expenses';
 import { fetchExpenseSplits } from '../../lib/api/expenses';
 import { hasSupabaseEnv } from '../../lib/supabaseClient';
+import { useCurrencyFormatter } from '../../lib/formatters';
 
 type ExpenseItemProps = {
     expense: Expense;
@@ -28,10 +30,7 @@ function ExpenseDetails({ expenseId, currency }: { expenseId: string; currency: 
         enabled: Boolean(expenseId && hasSupabaseEnv),
     });
 
-    const formatter = useMemo(
-        () => new Intl.NumberFormat('en-US', { style: 'currency', currency }),
-        [currency]
-    );
+    const formatter = useCurrencyFormatter(currency);
 
     if (isLoading) return <p className="text-xs text-slate-500 py-2">Loading splits...</p>;
     if (error) return <p className="text-xs text-rose-600 py-2">Failed to load splits.</p>;
@@ -52,42 +51,87 @@ function ExpenseDetails({ expenseId, currency }: { expenseId: string; currency: 
     );
 }
 
-export function ExpenseItem({
+export const ExpenseItem = memo(function ExpenseItem({
     expense,
     currency,
-    currentUserId,
+    currentUserId: _currentUserId, // Reserved for future use
     peopleById,
     onEdit,
     onDelete,
     isExpanded,
     onToggleExpand,
 }: ExpenseItemProps) {
-    const formatter = useMemo(
-        () => new Intl.NumberFormat('en-US', { style: 'currency', currency }),
-        [currency]
-    );
+    const [swipeOffset, setSwipeOffset] = useState(0);
+    const [isSwipeActive, setIsSwipeActive] = useState(false);
+
+    const formatter = useCurrencyFormatter(currency);
 
     const amountFormatted = formatter.format(expense.amount_cents / 100);
     const payerName = peopleById.get(expense.paid_by_person_id) ?? 'Unknown';
-    const isPayer = expense.paid_by_person_id === (expense.paid_by_person_id && currentUserId && (peopleById.get(expense.paid_by_person_id) === peopleById.get(Object.keys(Object.fromEntries(peopleById)).find(k => k === currentUserId) || ''))); // Logic is tricky without direct mapping, but we rely on IDs.
-
-    // Need to map currentUserId to personId correctly in parent or pass it down.
-    // Assuming currentUserId passed is the AUTH user ID, but expense uses PERSON ID.
-    // Ideally `people` data contains `user_id` to map.
-    // For UI: "You paid" if we match.
-    // Since we don't have the full people objects here to check `user_id`, we might rely on parent logic or just show names.
-    // In `ExpenseList` refactor I should pass `currentPersonId` ideally.
 
     const date = new Date(expense.expense_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    const swipeHandlers = useSwipeable({
+        onSwiping: (eventData) => {
+            // Only allow horizontal swiping
+            if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+                setSwipeOffset(eventData.deltaX);
+                setIsSwipeActive(true);
+            }
+        },
+        onSwiped: (eventData) => {
+            const threshold = 80; // Minimum swipe distance to trigger action
+
+            if (eventData.deltaX < -threshold) {
+                // Swipe left to delete
+                onDelete(expense.id);
+            }
+
+            setSwipeOffset(0);
+            setIsSwipeActive(false);
+        },
+        onSwipedLeft: () => {
+            setSwipeOffset(0);
+            setIsSwipeActive(false);
+        },
+        onSwipedRight: () => {
+            setSwipeOffset(0);
+            setIsSwipeActive(false);
+        },
+        preventScrollOnSwipe: true,
+        trackMouse: false, // Only enable on touch devices
+    });
 
     return (
         <motion.div
             layout
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{
+                opacity: 1,
+                x: isSwipeActive ? swipeOffset : 0
+            }}
             exit={{ opacity: 0 }}
+            transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 }
+            }}
             className="group overflow-hidden rounded-2xl border border-slate-100 bg-white transition-all hover:border-slate-200 hover:shadow-sm"
+            {...swipeHandlers}
         >
+            {/* Swipe Action Backgrounds */}
+            <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 text-white">
+                <div className={cn(
+                    'rounded-full bg-red-500 p-2 opacity-0 transition-opacity',
+                    swipeOffset < -40 && 'opacity-100'
+                )}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </div>
+            </div>
+
             <div
                 className="flex cursor-pointer items-center gap-4 p-4"
                 onClick={onToggleExpand}
@@ -166,4 +210,4 @@ export function ExpenseItem({
             </AnimatePresence>
         </motion.div>
     );
-}
+});

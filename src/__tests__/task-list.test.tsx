@@ -70,7 +70,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" />
+        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -110,7 +110,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" />
+        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -170,7 +170,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" />
+        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -245,7 +245,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" />
+        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -326,7 +326,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" />
+        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 

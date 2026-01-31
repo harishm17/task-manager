@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { SideNav } from '../components/SideNav';
 import { TopNav } from '../components/TopNav';
+import { FloatingActionButton } from '../components/common/FloatingActionButton';
 
 const mobileItems = [
   { to: '/dashboard', label: 'Home' },
@@ -22,6 +23,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Navigation */}
       <nav className="fixed bottom-4 left-1/2 z-20 flex w-[90%] max-w-md -translate-x-1/2 justify-between gap-1 rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-lg backdrop-blur md:hidden">
         {mobileItems.map((item) => (
           <NavLink
@@ -38,6 +41,9 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
+
+      {/* Floating Action Button for mobile */}
+      <FloatingActionButton />
     </div>
   );
 }

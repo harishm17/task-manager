@@ -12,7 +12,19 @@ export function BalancesPage() {
         title="Balances"
         subtitle="See who owes what and settle up fast."
         actions={
-          <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+          <button
+            onClick={() => {
+              const form = document.getElementById('settlement-form');
+              if (form) {
+                form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                form.classList.add('ring-2', 'ring-slate-300', 'ring-opacity-50');
+                setTimeout(() => {
+                  form.classList.remove('ring-2', 'ring-slate-300', 'ring-opacity-50');
+                }, 2000);
+              }
+            }}
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
             Settle Up
           </button>
         }

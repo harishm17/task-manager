@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, memo } from 'react';
+import { motion } from 'framer-motion';
+import { useSwipeable } from 'react-swipeable';
 import type { Task } from '../../lib/api/tasks';
 import { Avatar, Badge, Button, cn } from '../common/DesignSystem';
 
@@ -18,7 +19,7 @@ const priorityVariants: Record<Task['priority'], 'emerald' | 'amber' | 'rose'> =
     high: 'rose',
 };
 
-export function TaskItem({
+export const TaskItem = memo(function TaskItem({
     task,
     assigneeName,
     onToggleStatus,
@@ -27,18 +28,87 @@ export function TaskItem({
     isUpdating,
 }: TaskItemProps) {
     const isCompleted = task.status === 'completed';
+    const [swipeOffset, setSwipeOffset] = useState(0);
+    const [isSwipeActive, setIsSwipeActive] = useState(false);
+
+    const swipeHandlers = useSwipeable({
+        onSwiping: (eventData) => {
+            // Only allow horizontal swiping
+            if (Math.abs(eventData.deltaX) > Math.abs(eventData.deltaY)) {
+                setSwipeOffset(eventData.deltaX);
+                setIsSwipeActive(true);
+            }
+        },
+        onSwiped: (eventData) => {
+            const threshold = 80; // Minimum swipe distance to trigger action
+
+            if (eventData.deltaX > threshold && !isCompleted) {
+                // Swipe right to complete
+                onToggleStatus(task);
+            } else if (eventData.deltaX < -threshold) {
+                // Swipe left to delete
+                onDelete(task.id);
+            }
+
+            setSwipeOffset(0);
+            setIsSwipeActive(false);
+        },
+        onSwipedLeft: () => {
+            setSwipeOffset(0);
+            setIsSwipeActive(false);
+        },
+        onSwipedRight: () => {
+            setSwipeOffset(0);
+            setIsSwipeActive(false);
+        },
+        preventScrollOnSwipe: true,
+        trackMouse: false, // Only enable on touch devices
+    });
 
     return (
         <motion.li
             layout
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{
+                opacity: 1,
+                y: 0,
+                x: isSwipeActive ? swipeOffset : 0
+            }}
             exit={{ opacity: 0, scale: 0.95 }}
+            transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 }
+            }}
             className={cn(
                 'group relative flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 transition-all hover:border-slate-200 hover:shadow-sm sm:flex-row sm:items-start sm:gap-4',
                 isCompleted && 'bg-slate-50/50'
             )}
+            {...swipeHandlers}
         >
+            {/* Swipe Action Backgrounds */}
+            <div className="absolute inset-y-0 left-0 flex items-center justify-start pl-4 text-white">
+                <div className={cn(
+                    'rounded-full bg-green-500 p-2 opacity-0 transition-opacity',
+                    swipeOffset > 40 && !isCompleted && 'opacity-100'
+                )}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>
+                </div>
+            </div>
+            <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 text-white">
+                <div className={cn(
+                    'rounded-full bg-red-500 p-2 opacity-0 transition-opacity',
+                    swipeOffset < -40 && 'opacity-100'
+                )}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </div>
+            </div>
+
             <div className="flex flex-1 items-start gap-3">
                 {/* Checkbox */}
                 <button
@@ -135,4 +205,4 @@ export function TaskItem({
             </div>
         </motion.li>
     );
-}
+});

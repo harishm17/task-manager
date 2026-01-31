@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { hasSupabaseEnv } from '../lib/supabaseClient';
+import { BalanceHelp } from './common/HelpTooltip';
 import { fetchGroupPeople } from '../lib/api/groupPeople';
 import { computeNetBalances, computePairwiseBalances, fetchBalanceInputs } from '../lib/api/balances';
 import { fetchExpenses } from '../lib/api/expenses';
 import { createSettlement, fetchSettlements } from '../lib/api/settlements';
+import { useCurrencyFormatter } from '../lib/formatters';
 
 type BalancesPanelProps = {
   groupId: string;
@@ -33,6 +35,8 @@ export function BalancesPanel({ groupId, groupName, currency }: BalancesPanelPro
     queryKey: ['balances', groupId],
     queryFn: () => fetchBalanceInputs(groupId),
     enabled: Boolean(groupId && hasSupabaseEnv),
+    refetchInterval: 30000, // Refresh balances every 30 seconds for real-time updates
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 
   const { data: expenses = [] } = useQuery({
@@ -55,14 +59,7 @@ export function BalancesPanel({ groupId, groupName, currency }: BalancesPanelPro
   const currentPerson = people.find((person) => person.user_id === user?.id) ?? null;
   const currentBalance = balances.find((row) => row.personId === currentPerson?.id)?.netCents ?? 0;
 
-  const amountFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency,
-    }),
-    [currency]
-  );
+  const amountFormatter = useCurrencyFormatter(currency);
 
   const pairwiseBalances = useMemo(() => {
     if (!balanceInputs || !currentPerson) return [];
@@ -224,8 +221,13 @@ export function BalancesPanel({ groupId, groupName, currency }: BalancesPanelPro
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-400">Balances</p>
-          <p className="text-sm font-semibold text-slate-800">{groupName}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-400">Balances</p>
+              <p className="text-sm font-semibold text-slate-800">{groupName}</p>
+            </div>
+            <BalanceHelp />
+          </div>
         </div>
         {balanceLoading || peopleLoading ? <p className="text-sm text-slate-500">Loading balances...</p> : null}
         {balances.length === 0 && !balanceLoading ? (
@@ -367,7 +369,7 @@ export function BalancesPanel({ groupId, groupName, currency }: BalancesPanelPro
           </div>
         ) : null}
 
-        <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+        <div id="settlement-form" className="rounded-xl border border-slate-100 bg-slate-50 p-3 transition-all">
           <p className="text-xs uppercase tracking-wide text-slate-400">Record a settlement</p>
           <form
             className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr]"

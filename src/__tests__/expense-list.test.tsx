@@ -78,7 +78,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -140,7 +140,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -210,7 +210,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -274,7 +274,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -338,7 +338,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -423,7 +423,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -509,7 +509,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -582,7 +582,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -646,7 +646,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -738,7 +738,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -813,7 +813,7 @@ describe('ExpenseList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" />
+        <ExpenseList groupId="g1" groupName="Apartment" currency="USD" isCreating={false} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
