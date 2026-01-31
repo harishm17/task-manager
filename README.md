@@ -412,15 +412,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Email: harish.manoharan@utdallas.edu
 - Portfolio: [harishm17.github.io](https://harishm17.github.io)
 
----
-
-## Acknowledgments
-
-- [Supabase](https://supabase.com) - Backend infrastructure
-- [Vite](https://vitejs.dev/) - Build tooling
-- [React](https://reactjs.org/) - UI framework
-- [Vitest](https://vitest.dev/) - Testing framework
-
----
-
-**Built for roommates, by someone who knows the pain of splitting bills.**
