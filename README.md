@@ -389,12 +389,12 @@ Test suite (25 test files)
 
 ### Not Yet Implemented
 
-⬜ Real-time updates (Supabase Realtime)
-⬜ Notifications (in-app + email)
-⬜ Automated recurring generation (cron jobs)
-⬜ Mobile app (React Native)
-⬜ Budget tracking
-⬜ Expense categories with budgets
+- [ ] Real-time updates (Supabase Realtime)
+- [ ] Notifications (in-app + email)
+- [ ] Automated recurring generation (cron jobs)
+- [ ] Mobile app (React Native)
+- [ ] Budget tracking
+- [ ] Expense categories with budgets
 
 ---
 
