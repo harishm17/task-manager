@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useNotifications, type Notification } from '../../contexts/NotificationContext';
 import { Button } from '../common/DesignSystem';
 
 export function NotificationCenter() {

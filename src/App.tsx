@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -12,18 +13,21 @@ import { OnboardingWrapper } from './components/onboarding/OnboardingWrapper';
 import { TutorialProvider } from './components/common/TutorialTooltip';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ToastProvider } from './components/common/ToastProvider';
-import { BalancesPage } from './pages/BalancesPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ExpensesPage } from './pages/ExpensesPage';
-import { InviteAcceptPage } from './pages/InviteAcceptPage';
-import { LoginPage } from './pages/LoginPage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { SignupPage } from './pages/SignupPage';
-import { TasksPage } from './pages/TasksPage';
-import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
-import HealthCheckPage from './pages/HealthCheckPage';
+import { LoadingFallback } from './components/common/LoadingFallback';
+
+// Lazy load pages for code splitting
+const BalancesPage = lazy(() => import('./pages/BalancesPage').then(m => ({ default: m.BalancesPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage').then(m => ({ default: m.ExpensesPage })));
+const InviteAcceptPage = lazy(() => import('./pages/InviteAcceptPage').then(m => ({ default: m.InviteAcceptPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const SignupPage = lazy(() => import('./pages/SignupPage').then(m => ({ default: m.SignupPage })));
+const TasksPage = lazy(() => import('./pages/TasksPage').then(m => ({ default: m.TasksPage })));
+const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage').then(m => ({ default: m.UpdatePasswordPage })));
+const HealthCheckPage = lazy(() => import('./pages/HealthCheckPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,9 +52,10 @@ export default function App() {
                 <NotificationProvider>
                   <TutorialProvider>
                     <BrowserRouter>
-                      <Routes>
-                        {/* Public health check endpoint */}
-                        <Route path="/health" element={<HealthCheckPage />} />
+                      <Suspense fallback={<LoadingFallback />}>
+                        <Routes>
+                          {/* Public health check endpoint */}
+                          <Route path="/health" element={<HealthCheckPage />} />
 
                         <Route element={<AuthLayout />}>
                           <Route path="/login" element={<LoginPage />} />
@@ -77,6 +82,7 @@ export default function App() {
                           <Route path="*" element={<NotFoundPage />} />
                         </Route>
                       </Routes>
+                      </Suspense>
                     </BrowserRouter>
                   </TutorialProvider>
                 </NotificationProvider>

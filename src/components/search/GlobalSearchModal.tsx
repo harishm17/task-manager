@@ -85,8 +85,8 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
         metadata: {
           amount: expense.amount_cents,
           date: expense.expense_date,
-          category: expense.category?.name,
-          paidBy: expense.paid_by_person?.display_name,
+          category: expense.category?.name || null,
+          paidBy: expense.paid_by_person?.display_name || null,
         },
       });
     });

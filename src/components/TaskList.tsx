@@ -188,7 +188,7 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
           <div className="mb-6">
             <TaskForm
               people={people}
-              onSubmit={(data) => createMutation.mutate(data)}
+              onSubmit={(data) => createMutation.mutate(data as CreateTaskMutationData)}
               onCancel={onCancel}
               isSubmitting={createMutation.isPending}
               error={formError}
@@ -256,8 +256,8 @@ export function TaskList({ groupId, isCreating, onCancel }: TaskListProps) {
                         title: data.title,
                         description: data.description || null,
                         priority: data.priority,
-                        due_date: data.dueDate || null,
-                        assigned_to_person_id: data.assignedToPersonId || null,
+                        due_date: data.due_date || null,
+                        assigned_to_person_id: data.assigned_to_person_id || null,
                       };
                       updateMutation.mutate({ taskId: task.id, updates });
                     }}

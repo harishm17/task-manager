@@ -5,10 +5,25 @@ import type { Task } from '../../lib/api/tasks';
 import type { RecurringFrequency } from '../../lib/recurring';
 import { getTodayDateString } from '../../lib/recurring';
 
+type TaskFormData = {
+    mode?: 'single' | 'recurring';
+    title: string;
+    description?: string | null;
+    priority: Task['priority'];
+    dueDate?: string | null;
+    due_date?: string | null;
+    assignedToPersonId?: string | null;
+    assigned_to_person_id?: string | null;
+    startDate?: string;
+    endDate?: string | null;
+    frequency?: RecurringFrequency;
+    interval?: string;
+};
+
 type TaskFormProps = {
     initialData?: Partial<Task>;
     people: Array<{ id: string; display_name: string }>;
-    onSubmit: (data: Task) => void;
+    onSubmit: (data: TaskFormData) => void;
     onCancel: () => void;
     isSubmitting?: boolean;
     error?: string | null;
@@ -52,22 +67,24 @@ export function TaskForm({
             onSubmit({
                 mode: 'recurring',
                 title,
-                description,
+                description: description || null,
                 priority,
-                assignedToPersonId,
+                assignedToPersonId: assignedToPersonId || null,
                 frequency: recurringFrequency,
                 interval: recurringInterval,
                 startDate: dueDate, // In UI we call it due date, but for recurring it's start date
-                endDate: recurringEndDate,
+                endDate: recurringEndDate || null,
             });
         } else {
             onSubmit({
                 mode: 'single', // or implied by edit
                 title,
-                description,
+                description: description || null,
                 priority,
-                dueDate,
-                assignedToPersonId,
+                dueDate: dueDate || null,
+                due_date: dueDate || null,
+                assignedToPersonId: assignedToPersonId || null,
+                assigned_to_person_id: assignedToPersonId || null,
             });
         }
     };
