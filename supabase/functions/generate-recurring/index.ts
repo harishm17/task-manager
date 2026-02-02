@@ -144,6 +144,20 @@ async function generateTaskFromRecurring(
   recurringTask: RecurringTask,
   today: string
 ) {
+  // Check for duplicate: see if we already created a task today from this recurring task
+  const { data: existingTasks } = await supabase
+    .from('tasks')
+    .select('id')
+    .eq('group_id', recurringTask.group_id)
+    .eq('title', recurringTask.title)
+    .eq('due_date', today)
+    .limit(1);
+
+  if (existingTasks && existingTasks.length > 0) {
+    console.log(`Task already exists for recurring task ${recurringTask.id} on ${today}, skipping`);
+    return;
+  }
+
   // Calculate next occurrence
   const nextOccurrence = calculateNextOccurrence(
     recurringTask.frequency,
@@ -210,6 +224,20 @@ async function generateExpenseFromRecurring(
   recurringExpense: RecurringExpense,
   today: string
 ) {
+  // Check for duplicate: see if we already created an expense today from this recurring expense
+  const { data: existingExpenses } = await supabase
+    .from('expenses')
+    .select('id')
+    .eq('group_id', recurringExpense.group_id)
+    .eq('description', recurringExpense.description)
+    .eq('expense_date', today)
+    .limit(1);
+
+  if (existingExpenses && existingExpenses.length > 0) {
+    console.log(`Expense already exists for recurring expense ${recurringExpense.id} on ${today}, skipping`);
+    return;
+  }
+
   // Calculate next occurrence
   const nextOccurrence = calculateNextOccurrence(
     recurringExpense.frequency,
@@ -230,31 +258,12 @@ async function generateExpenseFromRecurring(
   }
 
   // Create the expense splits based on the split method
-  let expenseSplits = [];
-
-  if (recurringExpense.split_method === 'equal') {
-    // Create equal splits for all participants
-    const amountPerPerson = Math.floor(recurringExpense.amount_cents / recurringExpense.participant_ids.length);
-    let remainder = recurringExpense.amount_cents - (amountPerPerson * recurringExpense.participant_ids.length);
-
-    expenseSplits = recurringExpense.participant_ids.map((personId) => {
-      let amount = amountPerPerson;
-      if (remainder > 0) {
-        amount += 1;
-        remainder -= 1;
-      }
-      return {
-        person_id: personId,
-        amount_owed_cents: amount,
-      };
-    });
-  } else if (recurringExpense.split_method === 'exact' && recurringExpense.split_values) {
-    // Use the predefined split values
-    expenseSplits = Object.entries(recurringExpense.split_values).map(([personId, amount]) => ({
-      person_id: personId,
-      amount_owed_cents: amount,
-    }));
-  }
+  const expenseSplits = calculateExpenseSplits(
+    recurringExpense.split_method,
+    recurringExpense.amount_cents,
+    recurringExpense.participant_ids,
+    recurringExpense.split_values
+  );
 
   // Create the expense
   const { data: newExpense, error: createError } = await supabase
@@ -313,6 +322,151 @@ async function generateExpenseFromRecurring(
   );
 
   console.log(`Generated expense "${newExpense.description}" from recurring expense ${recurringExpense.id}`);
+}
+
+/**
+ * Calculate expense splits based on split method
+ */
+function calculateExpenseSplits(
+  splitMethod: string,
+  amountCents: number,
+  participantIds: string[],
+  splitValues: Record<string, number> | null
+): Array<{ person_id: string; amount_owed_cents: number }> {
+  const splits: Array<{ person_id: string; amount_owed_cents: number }> = [];
+
+  switch (splitMethod) {
+    case 'equal': {
+      // Equal split with largest remainder method
+      const amountPerPerson = Math.floor(amountCents / participantIds.length);
+      let remainder = amountCents - (amountPerPerson * participantIds.length);
+
+      for (const personId of participantIds) {
+        let amount = amountPerPerson;
+        if (remainder > 0) {
+          amount += 1;
+          remainder -= 1;
+        }
+        splits.push({ person_id: personId, amount_owed_cents: amount });
+      }
+      break;
+    }
+
+    case 'exact': {
+      // Exact amounts specified for each person
+      if (splitValues) {
+        for (const [personId, amount] of Object.entries(splitValues)) {
+          splits.push({ person_id: personId, amount_owed_cents: Math.round(amount) });
+        }
+      }
+      break;
+    }
+
+    case 'percentage': {
+      // Percentage-based split
+      if (splitValues) {
+        const amounts: Array<{ personId: string; ideal: number; actual: number; remainder: number }> = [];
+        let totalAssigned = 0;
+
+        // Calculate ideal amounts and remainders
+        for (const [personId, percentage] of Object.entries(splitValues)) {
+          const idealAmount = (amountCents * percentage) / 100;
+          const actualAmount = Math.floor(idealAmount);
+          const remainder = idealAmount - actualAmount;
+          amounts.push({ personId, ideal: idealAmount, actual: actualAmount, remainder });
+          totalAssigned += actualAmount;
+        }
+
+        // Distribute remainder using largest remainder method
+        const shortfall = amountCents - totalAssigned;
+        amounts.sort((a, b) => b.remainder - a.remainder);
+
+        for (let i = 0; i < shortfall; i++) {
+          amounts[i].actual += 1;
+        }
+
+        // Create splits
+        for (const { personId, actual } of amounts) {
+          splits.push({ person_id: personId, amount_owed_cents: actual });
+        }
+      }
+      break;
+    }
+
+    case 'shares': {
+      // Share-based split (weighted distribution)
+      if (splitValues) {
+        const totalShares = Object.values(splitValues).reduce((sum, shares) => sum + shares, 0);
+        const amounts: Array<{ personId: string; ideal: number; actual: number; remainder: number }> = [];
+        let totalAssigned = 0;
+
+        // Calculate ideal amounts and remainders
+        for (const [personId, shares] of Object.entries(splitValues)) {
+          const idealAmount = (amountCents * shares) / totalShares;
+          const actualAmount = Math.floor(idealAmount);
+          const remainder = idealAmount - actualAmount;
+          amounts.push({ personId, ideal: idealAmount, actual: actualAmount, remainder });
+          totalAssigned += actualAmount;
+        }
+
+        // Distribute remainder using largest remainder method
+        const shortfall = amountCents - totalAssigned;
+        amounts.sort((a, b) => b.remainder - a.remainder);
+
+        for (let i = 0; i < shortfall; i++) {
+          amounts[i].actual += 1;
+        }
+
+        // Create splits
+        for (const { personId, actual } of amounts) {
+          splits.push({ person_id: personId, amount_owed_cents: actual });
+        }
+      }
+      break;
+    }
+
+    case 'adjustment': {
+      // Equal split with adjustments
+      if (splitValues) {
+        const baseAmount = Math.floor(amountCents / participantIds.length);
+        let remainder = amountCents - (baseAmount * participantIds.length);
+
+        const amounts: Array<{ personId: string; amount: number }> = [];
+        let totalAdjustment = 0;
+
+        // Calculate adjusted amounts
+        for (const personId of participantIds) {
+          const adjustment = splitValues[personId] || 0;
+          totalAdjustment += adjustment;
+          let amount = baseAmount + adjustment;
+          if (remainder > 0) {
+            amount += 1;
+            remainder -= 1;
+          }
+          amounts.push({ personId, amount });
+        }
+
+        // Ensure total matches (adjustments should sum to 0, but handle edge cases)
+        const total = amounts.reduce((sum, a) => sum + a.amount, 0);
+        if (total !== amountCents) {
+          // Adjust the first person's amount to match total
+          amounts[0].amount += (amountCents - total);
+        }
+
+        // Create splits
+        for (const { personId, amount } of amounts) {
+          splits.push({ person_id: personId, amount_owed_cents: amount });
+        }
+      }
+      break;
+    }
+
+    default:
+      console.error(`Unknown split method: ${splitMethod}`);
+      break;
+  }
+
+  return splits;
 }
 
 function calculateNextOccurrence(
