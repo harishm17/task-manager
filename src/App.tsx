@@ -6,6 +6,7 @@ import { GroupProvider } from './contexts/GroupContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { RealtimeProvider } from './contexts/RealtimeContext';
 import { RequireAuth } from './components/RequireAuth';
 import { AppLayout } from './layouts/AppLayout';
 import { AuthLayout } from './layouts/AuthLayout';
@@ -48,9 +49,10 @@ export default function App() {
           <ToastProvider />
           <AuthProvider>
             <GroupProvider>
-              <OnboardingProvider>
-                <NotificationProvider>
-                  <TutorialProvider>
+              <RealtimeProvider>
+                <OnboardingProvider>
+                  <NotificationProvider>
+                    <TutorialProvider>
                     <BrowserRouter>
                       <Suspense fallback={<LoadingFallback />}>
                         <Routes>
@@ -84,9 +86,10 @@ export default function App() {
                       </Routes>
                       </Suspense>
                     </BrowserRouter>
-                  </TutorialProvider>
-                </NotificationProvider>
-              </OnboardingProvider>
+                    </TutorialProvider>
+                  </NotificationProvider>
+                </OnboardingProvider>
+              </RealtimeProvider>
             </GroupProvider>
           </AuthProvider>
         </QueryClientProvider>
