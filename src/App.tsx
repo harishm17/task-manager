@@ -23,6 +23,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SignupPage } from './pages/SignupPage';
 import { TasksPage } from './pages/TasksPage';
 import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
+import HealthCheckPage from './pages/HealthCheckPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,9 @@ export default function App() {
                   <TutorialProvider>
                     <BrowserRouter>
                       <Routes>
+                        {/* Public health check endpoint */}
+                        <Route path="/health" element={<HealthCheckPage />} />
+
                         <Route element={<AuthLayout />}>
                           <Route path="/login" element={<LoginPage />} />
                           <Route path="/signup" element={<SignupPage />} />

@@ -1,21 +1,21 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { env, isTest } from '../config/env';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+export const hasSupabaseEnv = Boolean(env.supabase.url && env.supabase.anonKey);
 
-export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
-const isTest = import.meta.env.MODE === 'test';
-
-if (!hasSupabaseEnv && !isTest) {
-  console.warn('Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-}
-
-export const supabase: SupabaseClient | null = hasSupabaseEnv
-  ? createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : null;
+/**
+ * Supabase client instance
+ * Configured with persistent sessions and auto token refresh
+ */
+export const supabase: SupabaseClient = createClient(
+  env.supabase.url,
+  env.supabase.anonKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: isTest ? undefined : window.localStorage,
+    },
+  }
+);
