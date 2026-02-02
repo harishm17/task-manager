@@ -356,14 +356,128 @@ npm run test:coverage # Generate coverage report
 
 ## Deployment
 
-### Deploy to Netlify
+### Production Deployment to Google Cloud Run
 
-1. Create `netlify.toml` (already included)
-2. Connect GitHub repository to Netlify
-3. Configure environment variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-4. Deploy!
+DivvyDo is production-ready with Docker containerization and automated deployment to GCP Cloud Run.
+
+#### Prerequisites
+
+- [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed and configured
+- [Docker](https://docs.docker.com/get-docker/) installed
+- Google Cloud Platform project with billing enabled
+- Supabase project set up
+
+#### Quick Deploy
+
+1. **Set your GCP project**:
+```bash
+gcloud config set project YOUR_PROJECT_ID
+```
+
+2. **Set environment variables**:
+```bash
+export VITE_SUPABASE_URL="https://your-project.supabase.co"
+export VITE_SUPABASE_ANON_KEY="your-anon-key"
+```
+
+3. **Deploy**:
+```bash
+./deploy.sh
+```
+
+The script will:
+- Build the Docker image
+- Push to Google Container Registry
+- Deploy to Cloud Run with optimized settings (512Mi memory, 1 CPU, auto-scaling)
+- Configure environment variables
+- Output your live URL
+
+#### Local Docker Testing
+
+Test the Docker build locally before deploying:
+
+```bash
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+# Run locally
+./deploy-local.sh
+
+# Access at http://localhost:8080
+# Health check: http://localhost:8080/health
+```
+
+#### CI/CD with Cloud Build
+
+Automatic deployment on git push using Cloud Build:
+
+1. **Connect repository**:
+```bash
+gcloud builds connect --region=us-central1
+```
+
+2. **Create trigger**:
+   - Go to Cloud Build → Triggers in GCP Console
+   - Create trigger from `cloudbuild.yaml`
+   - Add substitution variables:
+     - `_SUPABASE_URL`: Your Supabase URL
+     - `_SUPABASE_ANON_KEY`: Your Supabase anon key
+
+3. **Push to deploy**:
+```bash
+git push origin main
+```
+
+#### Manual Commands
+
+**Update environment variables**:
+```bash
+gcloud run services update divvydo \
+  --region us-central1 \
+  --update-env-vars VITE_SUPABASE_URL=...,VITE_SUPABASE_ANON_KEY=...
+```
+
+**Get service URL**:
+```bash
+gcloud run services describe divvydo \
+  --region us-central1 \
+  --format 'value(status.url)'
+```
+
+**View logs**:
+```bash
+gcloud run services logs read divvydo --region us-central1
+```
+
+#### Docker Architecture
+
+**Multi-stage Build**:
+1. Node.js builder stage compiles Vite application
+2. Nginx production stage serves static files
+
+**Runtime Environment Injection**:
+- Environment variables injected at container startup
+- No rebuild needed for config changes
+- Creates `env-config.js` and injects into `index.html`
+
+**Health Checks**:
+- `/health` endpoint for Cloud Run health monitoring
+- Automatic container restart on failures
+
+**Optimizations**:
+- Gzip compression for all text assets
+- 1-year cache headers for immutable assets
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+
+#### Alternative Deployment: Netlify
+
+For simpler deployment without Docker:
+
+1. Connect GitHub repository to Netlify
+2. Configure environment variables in Netlify dashboard
+3. Build command: `npm run build`
+4. Publish directory: `dist`
 
 ### Build Command
 
