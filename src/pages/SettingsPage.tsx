@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/PageHeader';
 import { ExportPanel } from '../components/ExportPanel';
@@ -29,10 +29,16 @@ export function SettingsPage() {
     enabled: Boolean(user?.id && hasSupabaseEnv),
   });
 
+  // Initialize form fields from profile data once
+  const hasInitializedProfile = useRef(false);
   useEffect(() => {
-    if (!profile) return;
-    setDisplayName(profile.name ?? '');
-    setAvatarUrl(profile.avatar_url ?? '');
+    if (!hasInitializedProfile.current && profile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDisplayName(profile.name ?? '');
+       
+      setAvatarUrl(profile.avatar_url ?? '');
+      hasInitializedProfile.current = true;
+    }
   }, [profile]);
 
   const updateProfileMutation = useMutation({

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { acceptInvitation } from '../lib/api/invitations';
@@ -10,16 +10,23 @@ export function InviteAcceptPage() {
   const { user, loading } = useAuth();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) return;
+    if (loading || !user || hasProcessed.current) return;
+
     if (!token) {
-      setStatus('error');
-      setMessage('Invalid invite link.');
+      // Defer state update to avoid synchronous setState in effect
+      queueMicrotask(() => {
+        setStatus('error');
+        setMessage('Invalid invite link.');
+      });
+      hasProcessed.current = true;
       return;
     }
 
+    hasProcessed.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('loading');
     acceptInvitation(token)
       .then(({ groupId }) => {

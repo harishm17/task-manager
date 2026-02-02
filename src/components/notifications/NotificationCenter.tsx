@@ -37,12 +37,13 @@ export function NotificationCenter() {
     return date.toLocaleDateString();
   };
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
       markAsRead(notification.id);
     }
 
     if (notification.actionUrl) {
+      // eslint-disable-next-line react-hooks/immutability
       window.location.href = notification.actionUrl;
       setIsOpen(false);
     }

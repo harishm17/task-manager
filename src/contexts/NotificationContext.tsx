@@ -9,7 +9,7 @@ export interface Notification {
   type: NotificationType;
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean | null>;
   read: boolean;
   createdAt: Date;
   actionUrl?: string;
@@ -29,26 +29,28 @@ const NotificationContext = createContext<NotificationContextValue | undefined>(
 
 const STORAGE_KEY = 'divvydo.notifications';
 
-export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  // Load notifications from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        const notificationsWithDates = parsed.map((n: any) => ({
-          ...n,
-          createdAt: new Date(n.createdAt)
-        }));
-        setNotifications(notificationsWithDates);
-      } catch (error) {
-        console.error('Failed to parse stored notifications:', error);
-      }
+// Helper to load notifications from localStorage
+const loadNotificationsFromStorage = (): Notification[] => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      // Convert date strings back to Date objects
+      const notificationsWithDates = parsed.map((n: Notification) => ({
+        ...n,
+        createdAt: new Date(n.createdAt)
+      }));
+      return notificationsWithDates;
+    } catch (error) {
+      console.error('Failed to parse stored notifications:', error);
     }
-  }, []);
+  }
+  return [];
+};
+
+export function NotificationProvider({ children }: { children: ReactNode }) {
+  // Use lazy initial state to load from localStorage (avoids setState in useEffect)
+  const [notifications, setNotifications] = useState<Notification[]>(loadNotificationsFromStorage);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
@@ -112,6 +114,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -121,6 +124,7 @@ export function useNotifications() {
 }
 
 // Helper functions to create common notifications
+// eslint-disable-next-line react-refresh/only-export-components
 export const notificationHelpers = {
   taskAssigned: (taskTitle: string, assigneeName: string, taskId: string) => ({
     type: 'task_assigned' as NotificationType,

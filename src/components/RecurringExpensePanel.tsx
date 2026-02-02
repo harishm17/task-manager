@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { hasSupabaseEnv } from '../lib/supabaseClient';
@@ -94,14 +94,21 @@ export function RecurringExpensePanel({
     enabled: Boolean(groupId && hasSupabaseEnv),
   });
 
+  // Initialize default values when people first loads (one-time initialization)
+  const hasInitializedDefaults = useRef(false);
   useEffect(() => {
-    if (people.length === 0) return;
-    setPaidByPersonId((current) => current || people[0].id);
-    setAdjustmentFromPersonId((current) => current || people[0].id);
-    setParticipantIds((current) => (current.length > 0 ? current : people.map((person) => person.id)));
-  }, [people]);
+    if (!hasInitializedDefaults.current && people.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (!paidByPersonId) setPaidByPersonId(people[0].id);
+       
+      if (!adjustmentFromPersonId) setAdjustmentFromPersonId(people[0].id);
+       
+      if (participantIds.length === 0) setParticipantIds(people.map((person) => person.id));
+      hasInitializedDefaults.current = true;
+    }
+  }, [people, paidByPersonId, adjustmentFromPersonId, participantIds]);
 
-  const seedCustomValues = (method: SplitMethod, nextParticipantIds: string[]) => {
+  const seedCustomValues = useCallback((method: SplitMethod, nextParticipantIds: string[]) => {
     if (method === 'exact') {
       const amountCents = parseAmountToCents(amount);
       if (amountCents === null) return {};
@@ -126,9 +133,9 @@ export function RecurringExpensePanel({
       }, {});
     }
     return {};
-  };
+  }, [amount]);
 
-  const syncCustomSplits = (nextParticipantIds: string[], seed: boolean) => {
+  const syncCustomSplits = useCallback((nextParticipantIds: string[], seed: boolean) => {
     setCustomSplits((current) => {
       const next: Record<string, string> = {};
       nextParticipantIds.forEach((personId) => {
@@ -144,14 +151,19 @@ export function RecurringExpensePanel({
       }
       return next;
     });
-  };
+  }, [seedCustomValues, splitMethod]);
 
+  // Initialize custom splits when split method changes (one-time per method change)
+  const prevSplitMethodRef = useRef<SplitMethod | null>(null);
   useEffect(() => {
-    if (splitMethod === 'equal' || splitMethod === 'adjustment') return;
-    if (participantIds.length === 0) return;
-    if (Object.keys(customSplits).length > 0) return;
-    syncCustomSplits(participantIds, true);
-  }, [splitMethod, participantIds, customSplits]);
+    if (prevSplitMethodRef.current !== splitMethod) {
+      if (splitMethod !== 'equal' && splitMethod !== 'adjustment' && participantIds.length > 0 && Object.keys(customSplits).length === 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        syncCustomSplits(participantIds, true);
+      }
+      prevSplitMethodRef.current = splitMethod;
+    }
+  }, [splitMethod, participantIds, customSplits, syncCustomSplits]);
 
   const setSplitMethodWithSeed = (method: SplitMethod) => {
     setSplitMethod(method);

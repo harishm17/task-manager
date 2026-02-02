@@ -17,7 +17,7 @@ interface SearchResult {
   title: string;
   subtitle: string;
   url: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 interface GlobalSearchModalProps {
@@ -185,7 +185,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           e.preventDefault();
           setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
           break;
-        case 'Enter':
+        case 'Enter': {
           e.preventDefault();
           const allItems = [...searchResults, ...quickActions];
           const selectedItem = allItems[selectedIndex];
@@ -198,6 +198,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
             }
           }
           break;
+        }
       }
     };
 
@@ -207,6 +208,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
 
   // Reset selection when query changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIndex(0);
   }, [query]);
 

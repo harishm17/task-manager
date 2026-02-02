@@ -38,7 +38,7 @@ export function TaskFilters({
             />
             <Select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-9"
             >
                 <option value="all">All Statuses</option>
@@ -48,7 +48,7 @@ export function TaskFilters({
             </Select>
             <Select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value as any)}
+                onChange={(e) => setPriorityFilter(e.target.value)}
                 className="h-9"
             >
                 <option value="all">All Priorities</option>

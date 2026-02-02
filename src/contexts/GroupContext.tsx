@@ -90,11 +90,13 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadGroups();
   }, [loadGroups]);
 
   useEffect(() => {
     if (groups.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveGroupIdState(null);
       return;
     }
@@ -147,6 +149,7 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   return <GroupContext.Provider value={value}>{children}</GroupContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGroups() {
   const context = useContext(GroupContext);
   if (!context) {

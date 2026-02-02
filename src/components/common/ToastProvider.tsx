@@ -1,6 +1,7 @@
 import { Toaster, toast } from 'sonner';
 
 // Export the toast function for use throughout the app
+// eslint-disable-next-line react-refresh/only-export-components
 export { toast };
 
 export function ToastProvider() {
@@ -25,6 +26,7 @@ export function ToastProvider() {
 }
 
 // Utility functions for common toast patterns
+// eslint-disable-next-line react-refresh/only-export-components
 export const showSuccess = (message: string, description?: string) => {
   toast.success(message, {
     description,
@@ -32,6 +34,7 @@ export const showSuccess = (message: string, description?: string) => {
   });
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const showError = (message: string, description?: string) => {
   toast.error(message, {
     description,
@@ -46,6 +49,7 @@ export const showError = (message: string, description?: string) => {
   });
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const showWarning = (message: string, description?: string) => {
   toast.warning(message, {
     description,
@@ -53,6 +57,7 @@ export const showWarning = (message: string, description?: string) => {
   });
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const showInfo = (message: string, description?: string) => {
   toast.info(message, {
     description,
@@ -60,12 +65,14 @@ export const showInfo = (message: string, description?: string) => {
   });
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const showLoading = (message: string) => {
   return toast.loading(message, {
     duration: Infinity,
   });
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const dismissToast = (toastId: string | number) => {
   toast.dismiss(toastId);
 };

@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 interface RecurringTask {
   id: string;
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
 });
 
 async function generateTaskFromRecurring(
-  supabase: any,
+  supabase: SupabaseClient,
   recurringTask: RecurringTask,
   today: string
 ) {
@@ -199,15 +199,14 @@ async function generateTaskFromRecurring(
     recurringTask.group_id,
     `Recurring task generated: ${recurringTask.title}`,
     `A new "${recurringTask.title}" task has been created from your recurring schedule.`,
-    'recurring_generated',
-    recurringTask.created_by
+    'recurring_generated'
   );
 
   console.log(`Generated task "${newTask.title}" from recurring task ${recurringTask.id}`);
 }
 
 async function generateExpenseFromRecurring(
-  supabase: any,
+  supabase: SupabaseClient,
   recurringExpense: RecurringExpense,
   today: string
 ) {
@@ -238,7 +237,7 @@ async function generateExpenseFromRecurring(
     const amountPerPerson = Math.floor(recurringExpense.amount_cents / recurringExpense.participant_ids.length);
     let remainder = recurringExpense.amount_cents - (amountPerPerson * recurringExpense.participant_ids.length);
 
-    expenseSplits = recurringExpense.participant_ids.map((personId, index) => {
+    expenseSplits = recurringExpense.participant_ids.map((personId) => {
       let amount = amountPerPerson;
       if (remainder > 0) {
         amount += 1;
@@ -310,8 +309,7 @@ async function generateExpenseFromRecurring(
     recurringExpense.group_id,
     `Recurring expense generated: ${recurringExpense.description}`,
     `A new "${recurringExpense.description}" expense has been created from your recurring schedule.`,
-    'recurring_generated',
-    recurringExpense.created_by
+    'recurring_generated'
   );
 
   console.log(`Generated expense "${newExpense.description}" from recurring expense ${recurringExpense.id}`);
@@ -340,13 +338,13 @@ function calculateNextOccurrence(
 }
 
 async function createRecurringNotification(
-  supabase: any,
+  supabase: SupabaseClient,
   groupId: string,
   title: string,
   message: string,
-  type: string,
-  createdBy: string
+  type: string
 ) {
+  // createdBy removed - not currently used in notification creation
   // Get group name for the notification
   const { data: group } = await supabase
     .from('groups')

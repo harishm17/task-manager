@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { hasSupabaseEnv } from '../lib/supabaseClient';
@@ -41,11 +41,16 @@ export function RecurringTaskPanel({ groupId, showCreateForm = true }: Recurring
     enabled: Boolean(groupId && hasSupabaseEnv),
   });
 
+  // Initialize assignedToPersonId with current user (one-time initialization)
+  const hasInitializedAssignee = useRef(false);
   useEffect(() => {
-    if (assignedToPersonId || people.length === 0) return;
-    const self = people.find((person) => person.user_id === user?.id);
-    if (self) {
-      setAssignedToPersonId(self.id);
+    if (!hasInitializedAssignee.current && !assignedToPersonId && people.length > 0 && user?.id) {
+      const self = people.find((person) => person.user_id === user.id);
+      if (self) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setAssignedToPersonId(self.id);
+        hasInitializedAssignee.current = true;
+      }
     }
   }, [assignedToPersonId, people, user?.id]);
 

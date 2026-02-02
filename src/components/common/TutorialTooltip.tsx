@@ -11,6 +11,7 @@ interface TutorialContextValue {
 
 const TutorialContext = createContext<TutorialContextValue | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTutorial() {
   const context = useContext(TutorialContext);
   if (!context) {

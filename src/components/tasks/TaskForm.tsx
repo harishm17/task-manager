@@ -8,7 +8,7 @@ import { getTodayDateString } from '../../lib/recurring';
 type TaskFormProps = {
     initialData?: Partial<Task>;
     people: Array<{ id: string; display_name: string }>;
-    onSubmit: (data: any) => void;
+    onSubmit: (data: Task) => void;
     onCancel: () => void;
     isSubmitting?: boolean;
     error?: string | null;

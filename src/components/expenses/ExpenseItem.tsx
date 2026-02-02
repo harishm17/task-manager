@@ -54,13 +54,15 @@ function ExpenseDetails({ expenseId, currency }: { expenseId: string; currency: 
 export const ExpenseItem = memo(function ExpenseItem({
     expense,
     currency,
-    currentUserId: _currentUserId, // Reserved for future use
+    currentUserId,
     peopleById,
     onEdit,
     onDelete,
     isExpanded,
     onToggleExpand,
 }: ExpenseItemProps) {
+    // currentUserId reserved for future use (showing "you" vs names)
+    void currentUserId;
     const [swipeOffset, setSwipeOffset] = useState(0);
     const [isSwipeActive, setIsSwipeActive] = useState(false);
 

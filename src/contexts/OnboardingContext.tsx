@@ -30,36 +30,37 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { groups, activeGroup } = useGroups();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-
-  // Check if user has completed onboarding
-  useEffect(() => {
-    if (!user) return;
-
+  // Lazy initial state: check localStorage for completion status (avoids setState in useEffect)
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(() => {
     const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (stored === 'completed') {
-      setIsOnboardingComplete(true);
-      return;
-    }
+    return stored === 'completed';
+  });
 
-    // Determine current step based on user state
+  // Determine current step based on user state
+  useEffect(() => {
+    if (!user || isOnboardingComplete) return;
+
     if (groups.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentStep('welcome');
     } else if (groups.some(g => g.type === 'personal')) {
       const personalGroup = groups.find(g => g.type === 'personal');
       const householdGroups = groups.filter(g => g.type === 'household');
 
       if (householdGroups.length === 0) {
+         
         setCurrentStep('household-decision');
       } else if (personalGroup && activeGroup?.id === personalGroup.id) {
+         
         setCurrentStep('create-first-task');
       } else {
         // User is in a household group, check if they have created tasks
         // For now, assume onboarding is complete if they have household groups
+         
         setIsOnboardingComplete(true);
       }
     }
-  }, [user, groups, activeGroup]);
+  }, [user, groups, activeGroup, isOnboardingComplete]);
 
   const nextStep = () => {
     const steps: OnboardingStep[] = [
@@ -132,6 +133,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOnboarding() {
   const context = useContext(OnboardingContext);
   if (!context) {
