@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import { DashboardPage } from '../pages/DashboardPage';
+import { TutorialProvider } from '../components/common/TutorialTooltip';
 
 const fetchTasksMock = vi.fn();
 const fetchExpensesMock = vi.fn();
@@ -149,26 +150,38 @@ describe('DashboardPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <DashboardPage />
+          <TutorialProvider>
+            <DashboardPage />
+          </TutorialProvider>
         </MemoryRouter>
       </QueryClientProvider>
     );
 
-    const dueCard = await screen.findByText(/tasks due today/i);
-    const overdueCard = screen.getByText(/overdue tasks/i);
-    const assignedCard = screen.getByText(/assigned to you/i);
-    const completedCard = screen.getByText(/completed \(7 days\)/i);
-    const pendingCard = screen.getByText(/pending tasks/i);
+    // Find metric cards by their emoji and label
+    const tasksCard = await screen.findByText(/📝 tasks/i);
+    const completedCard = screen.getByText(/✅ completed/i);
 
     await waitFor(() => {
-      expect(within(dueCard.closest('div') ?? dueCard).getByText('1')).toBeInTheDocument();
-      expect(within(overdueCard.closest('div') ?? overdueCard).getByText('1')).toBeInTheDocument();
-      expect(within(assignedCard.closest('div') ?? assignedCard).getByText('2')).toBeInTheDocument();
-      expect(within(completedCard.closest('div') ?? completedCard).getByText('1')).toBeInTheDocument();
-      expect(within(pendingCard.closest('div') ?? pendingCard).getByText('3')).toBeInTheDocument();
+      // Tasks card should show 1 task due today (find within the link element)
+      const tasksLink = tasksCard.closest('a');
+      expect(tasksLink).not.toBeNull();
+      expect(within(tasksLink as HTMLElement).getByText('1')).toBeInTheDocument();
+      // Tasks card should show "1 overdue" in the subtitle
+      expect(within(tasksLink as HTMLElement).getByText(/1 overdue/i)).toBeInTheDocument();
+
+      // Completed card should show 1 task completed in last 7 days
+      const completedDiv = completedCard.closest('div');
+      expect(completedDiv).not.toBeNull();
+      expect(within(completedDiv as HTMLElement).getByText('1')).toBeInTheDocument();
     });
 
-    expect(await screen.findByText(/you are owed 12.50/i)).toBeInTheDocument();
+    // Check for balance text (text is split across multiple elements, and may appear multiple times)
+    await waitFor(() => {
+      const owedText = screen.queryAllByText(/owed to you/i);
+      expect(owedText.length).toBeGreaterThanOrEqual(1);
+    });
+    // The amount is split: "$" and "12.50" are separate text nodes - use regex to find it
+    expect(screen.getByText(/12\.50/)).toBeInTheDocument();
     expect(screen.getByText(/groceries/i)).toBeInTheDocument();
   });
 });

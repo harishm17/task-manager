@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Input, Select, cn } from '../common/DesignSystem';
 import { ExpenseSplittingHelp, RecurringHelp } from '../common/HelpTooltip';
 import type { ExpenseCategory } from '../../lib/api/expenses';
@@ -114,6 +114,22 @@ export function ExpenseForm({
     // File (placeholder for future receipt upload)
     const [_receiptFile] = useState<File | null>(null);
 
+    // Initialize paidByPersonId and participantIds when people loads (for create mode)
+    const hasInitializedPeople = useRef(false);
+    useEffect(() => {
+        if (mode === 'create' && !initialData && people.length > 0 && !hasInitializedPeople.current) {
+            if (!paidByPersonId) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setPaidByPersonId(people[0].id);
+            }
+            if (participantIds.length === 0) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setParticipantIds(people.map(p => p.id));
+            }
+            hasInitializedPeople.current = true;
+        }
+    }, [people, mode, initialData, paidByPersonId, participantIds.length]);
+
     const descriptionInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -131,7 +147,7 @@ export function ExpenseForm({
 
     const formatCents = (cents: number) => (cents / 100).toFixed(2);
 
-    const seedCustomValues = (method: SplitMethod, nextParticipants: string[], amt: string) => {
+    const seedCustomValues = useCallback((method: SplitMethod, nextParticipants: string[], amt: string) => {
         if (method === 'exact') {
             const cents = parseAmountToCents(amt);
             if (cents === null) return {};
@@ -153,19 +169,23 @@ export function ExpenseForm({
             }, {});
         }
         return {};
-    };
+    }, []);
 
-    // Sync custom splits when changing method or participants
+    // Initialize custom splits when switching split method (one-time per method change)
+    const prevSplitMethodRef = useRef<SplitMethod | null>(null);
     useEffect(() => {
-        if (splitMethod === 'equal' || splitMethod === 'adjustment') return;
-
-        // If switching to this method and no values set, seed them
-        const hasValues = participantIds.every(pid => customSplits[pid] !== undefined);
-        if (!hasValues) {
-            const seeded = seedCustomValues(splitMethod, participantIds, amount);
-            setCustomSplits(prev => ({ ...prev, ...seeded }));
+        if (prevSplitMethodRef.current !== splitMethod) {
+            if (splitMethod !== 'equal' && splitMethod !== 'adjustment') {
+                const hasValues = participantIds.every(pid => customSplits[pid] !== undefined);
+                if (!hasValues) {
+                    const seeded = seedCustomValues(splitMethod, participantIds, amount);
+                    // eslint-disable-next-line react-hooks/set-state-in-effect
+                    setCustomSplits(prev => ({ ...prev, ...seeded }));
+                }
+            }
+            prevSplitMethodRef.current = splitMethod;
         }
-    }, [splitMethod, participantIds, amount]);
+    }, [splitMethod, participantIds, amount, customSplits, seedCustomValues]);
 
 
     const handleSubmit = (e: React.FormEvent) => {

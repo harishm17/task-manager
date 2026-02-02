@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TaskList } from '../components/TaskList';
 
@@ -70,15 +70,16 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
+        <TaskList groupId="g1" isCreating={true} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
-    const assigneeSelect = await screen.findByLabelText(/assign task to/i);
+    const assigneeSelect = await screen.findByLabelText(/assign to/i);
     await within(assigneeSelect).findByRole('option', { name: 'Sam' });
     await userEvent.selectOptions(assigneeSelect, 'p1');
-    await userEvent.type(screen.getByPlaceholderText(/task title/i), 'Wash dishes');
-    await userEvent.click(screen.getByRole('button', { name: /add task/i }));
+    const titleInput = screen.getByLabelText(/task title/i);
+    await userEvent.type(titleInput, 'Wash dishes');
+    await userEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     expect(createTaskMock).toHaveBeenCalledWith({
       groupId: 'g1',
@@ -110,22 +111,25 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
+        <TaskList groupId="g1" isCreating={true} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
-    const assigneeSelect = await screen.findByLabelText(/assign task to/i);
+    const assigneeSelect = await screen.findByLabelText(/assign to/i);
     await within(assigneeSelect).findByRole('option', { name: 'Sam' });
     await userEvent.selectOptions(assigneeSelect, 'p1');
-    await userEvent.type(screen.getByPlaceholderText(/task title/i), 'Trash');
-    await userEvent.type(screen.getByLabelText(/due date/i), '2024-02-01');
-    await userEvent.click(screen.getByLabelText(/schedule this task/i));
+    const titleInput = screen.getByLabelText(/task title/i);
+    await userEvent.type(titleInput, 'Trash');
+    const dueDateInput = screen.getByLabelText(/due date/i);
+    await userEvent.type(dueDateInput, '2024-02-01');
+    await userEvent.click(screen.getByLabelText(/recurring schedule/i));
     await userEvent.selectOptions(screen.getByDisplayValue('Weekly'), 'monthly');
-    await userEvent.clear(screen.getByPlaceholderText(/every 1/i));
-    await userEvent.type(screen.getByPlaceholderText(/every 1/i), '2');
-    await userEvent.type(screen.getByPlaceholderText(/end date/i), '2024-06-01');
+    const intervalInput = screen.getByLabelText(/every.*interval/i);
+    await userEvent.clear(intervalInput);
+    await userEvent.type(intervalInput, '2');
+    await userEvent.type(screen.getByLabelText(/end date.*optional/i), '2024-06-01');
 
-    await userEvent.click(screen.getByRole('button', { name: /add recurring task/i }));
+    await userEvent.click(screen.getByRole('button', { name: /create schedule/i }));
 
     expect(createRecurringTaskMock).toHaveBeenCalledWith({
       groupId: 'g1',
@@ -170,7 +174,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
+        <TaskList groupId="g1" isCreating={true} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -245,7 +249,7 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
+        <TaskList groupId="g1" isCreating={true} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
@@ -257,15 +261,15 @@ describe('TaskList', () => {
     expect(editForm).not.toBeNull();
 
     const formScope = within(editForm as HTMLElement);
-    const titleInput = formScope.getByPlaceholderText(/task title/i);
+    const titleInput = formScope.getByLabelText(/task title/i);
     await userEvent.clear(titleInput);
     await userEvent.type(titleInput, 'Clean kitchen');
-    await userEvent.selectOptions(formScope.getByRole('combobox', { name: /edit assignee/i }), 'p2');
-    await userEvent.selectOptions(formScope.getByRole('combobox', { name: /edit priority/i }), 'high');
+    await userEvent.selectOptions(formScope.getByLabelText(/assign to/i), 'p2');
+    await userEvent.selectOptions(formScope.getByLabelText(/priority/i), 'high');
     const dateInput = formScope.getByDisplayValue('2024-01-10');
     await userEvent.clear(dateInput);
     await userEvent.type(dateInput, '2024-02-01');
-    const descriptionInput = formScope.getByPlaceholderText(/optional description/i);
+    const descriptionInput = formScope.getByPlaceholderText(/add details/i);
     await userEvent.clear(descriptionInput);
     await userEvent.type(descriptionInput, 'Deep clean');
 
@@ -326,17 +330,23 @@ describe('TaskList', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <TaskList groupId="g1" isCreating={false} onCancel={() => {}} />
+        <TaskList groupId="g1" isCreating={true} onCancel={() => {}} />
       </QueryClientProvider>
     );
 
     await screen.findByText('Trash');
-    await userEvent.selectOptions(screen.getByLabelText(/filter by status/i), 'completed');
+    const statusSelect = screen.getByDisplayValue('All Statuses');
+    await userEvent.selectOptions(statusSelect, 'completed');
 
-    expect(screen.queryByText('Trash')).not.toBeInTheDocument();
-    expect(screen.getByText('Laundry')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Trash')).not.toBeInTheDocument();
+      expect(screen.getByText('Laundry')).toBeInTheDocument();
+    });
 
-    await userEvent.type(screen.getByLabelText(/search tasks/i), 'lau');
-    expect(screen.getByText('Laundry')).toBeInTheDocument();
+    const searchInput = screen.getByPlaceholderText(/search tasks/i);
+    await userEvent.type(searchInput, 'lau');
+    await waitFor(() => {
+      expect(screen.getByText('Laundry')).toBeInTheDocument();
+    });
   });
 });
