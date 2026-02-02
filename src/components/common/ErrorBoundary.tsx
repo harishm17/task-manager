@@ -1,6 +1,7 @@
 import React from 'react';
 import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { Button } from './DesignSystem';
+import { logError } from '../../lib/monitoring';
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
@@ -60,17 +61,14 @@ export function ErrorBoundary({
     <ReactErrorBoundary
       FallbackComponent={Fallback}
       onError={(error, errorInfo) => {
-        // Log to console in development
-        console.error('Error Boundary caught an error:', error, errorInfo);
+        // Log error with monitoring system
+        logError(error as Error, {
+          tags: { boundary: 'app', component: errorInfo.componentStack?.split('\n')[1] },
+          extra: { componentStack: errorInfo.componentStack },
+        });
 
         // Call custom error handler if provided
         onError?.(error as Error, errorInfo);
-
-        // In production, this would send to error tracking service like Sentry
-        if (import.meta.env.PROD) {
-          // TODO: Send to Sentry or similar
-          console.error('Production error - should send to error tracking service');
-        }
       }}
       onReset={() => {
         // Clear any error state when user tries again

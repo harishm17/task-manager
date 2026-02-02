@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import { setUser as setMonitoringUser, clearUser as clearMonitoringUser } from '../lib/monitoring';
 
 type AuthContextValue = {
   session: Session | null;
@@ -46,6 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       setSession(nextSession ?? null);
       setLoading(false);
+
+      // Update monitoring user context
+      if (nextSession?.user) {
+        setMonitoringUser({
+          id: nextSession.user.id,
+          email: nextSession.user.email,
+        });
+      } else {
+        clearMonitoringUser();
+      }
     });
 
     return () => {

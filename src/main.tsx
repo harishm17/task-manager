@@ -4,6 +4,10 @@ import './index.css'
 import App from './App.tsx'
 import { ConfigErrorBoundary } from './components/common/ConfigErrorBoundary'
 import { registerServiceWorker } from './lib/registerSW'
+import { initMonitoring } from './lib/monitoring'
+
+// Initialize monitoring and error tracking
+initMonitoring();
 
 // Register service worker for PWA support
 if (import.meta.env.PROD) {
