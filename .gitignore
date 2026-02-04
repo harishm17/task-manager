@@ -25,3 +25,8 @@ dist-ssr
 *.sln
 *.sw?
 *.md
+
+STATUS.md
+product-plan.md
+technical-strategy.md
+ui-ux-design-system.md
