@@ -16,6 +16,11 @@ Split bills, track balances, and settle up—built for roommates who don't want 
 
 **DivvyDo** is a production-ready expense management app designed for roommates and shared households. No more awkward conversations about who owes what—track expenses, split bills using 5 different methods, and settle balances with confidence.
 
+### Typical Workflows
+- **Split a shared bill**: create expense → choose split method → review balances
+- **Track household chores**: add tasks → assign owners → mark done
+- **Settle up**: review pairwise balances → record a settlement
+
 ### The Problem
 - Manual expense tracking in spreadsheets is error-prone
 - Calculating fair splits across multiple people is tedious
@@ -525,4 +530,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - LinkedIn: [linkedin.com/in/harishm17](https://linkedin.com/in/harishm17)
 - Email: harish.manoharan@utdallas.edu
 - Portfolio: [harishm17.github.io](https://harishm17.github.io)
-
