@@ -39,10 +39,6 @@ DivvyDo provides:
 
 ## Demo
 
-### Video Walkthrough
-
-> **Coming Soon**: 90-second demo showing expense splitting and balance calculation
-
 ### Screenshots
 
 **Expense Split Interface**
