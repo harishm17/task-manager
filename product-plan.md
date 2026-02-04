@@ -1993,7 +1993,7 @@ This plan outlines a comprehensive **dual-purpose task + expense management appl
 
 **Document Version:** 2.0 (Updated with Roommate Features & Expense Tracking)
 **Last Updated:** January 4, 2026
-**Author:** Claude + Harish M
+**Author:** Harish M
 **Status:** Implementation in progress
 
 **Changelog:**

@@ -4,7 +4,7 @@
 **Document Type:** Technical Architecture & Implementation Decisions
 **Pairs With:** `product-plan.md`
 **Purpose:** Critical analysis, technical decisions, and actionable roadmap
-**Author:** Technical Review (Claude)
+**Author:** Technical Review
 **Date:** January 4, 2026
 **Status:** Implementation in progress
 

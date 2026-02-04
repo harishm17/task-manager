@@ -4,7 +4,7 @@
 **Document Type:** User Interface & Experience Design Specification
 **Pairs With:** `product-plan.md` + `technical-strategy.md`
 **Purpose:** Prevent user confusion and overwhelm through thoughtful design
-**Author:** UX Design Review (Claude)
+**Author:** UX Design Review
 **Date:** January 4, 2026
 **Status:** Implementation in progress
 
