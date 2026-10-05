@@ -1,528 +1,188 @@
-<div align="center">
+# DivvyDo: Roommate Expense Manager
 
-# DivvyDo — Roommate Expense Manager
+Expense splitting, balances, and shared tasks for households. React and TypeScript on the front end, Supabase (Postgres, Auth, Storage, Edge Functions) on the back end.
 
-### Penny-perfect expense splitting for shared households
+## Status
 
-Split bills, track balances, and settle up—built for roommates who don't want spreadsheets.
-
-[Overview](#-overview) • [Demo](#-demo) • [Features](#-features) • [Getting Started](#-getting-started) • [Testing](#-testing)
-
-</div>
-
----
-
-## Overview
-
-**DivvyDo** is a production-ready expense management app designed for roommates and shared households. No more awkward conversations about who owes what—track expenses, split bills using 5 different methods, and settle balances with confidence.
-
-### Typical Workflows
-- **Split a shared bill**: create expense → choose split method → review balances
-- **Track household chores**: add tasks → assign owners → mark done
-- **Settle up**: review pairwise balances → record a settlement
-
-### The Problem
-- Manual expense tracking in spreadsheets is error-prone
-- Calculating fair splits across multiple people is tedious
-- Tracking who owes whom becomes messy with multiple transactions
-- Existing apps are overcomplicated or charge fees
-
-### The Solution
-DivvyDo provides:
-- **5 split methods** for any scenario (equal, exact, percentage, shares, adjustment)
-- **Penny-perfect rounding** ensuring cents never disappear or duplicate
-- **Automatic balance calculation** showing net and pairwise balances
-- **Receipt uploads** with Supabase Storage integration
-- **Admin tooling** for managing household members and exporting data
-
----
-
-## Demo
-
-### Screenshots
-
-**Expense Split Interface**
-![Expense Splitting](./docs/screenshots/expense-split.png)
-*5 split methods: equal, exact, percentage, shares, and adjustment*
-
-**Balance Dashboard**
-![Balance View](./docs/screenshots/balances.png)
-*Net and pairwise balances with settlement tracking*
-
-**Admin Tools**
-![Admin Panel](./docs/screenshots/admin-tools.png)
-*CSV exports, people merging, and invite management*
-
-### Try It Locally
-
-Follow the [Getting Started](#-getting-started) guide below to run locally.
+- **`main` currently has a known build error.** `src/contexts/RealtimeContext.tsx` imports `useGroupContext` from `GroupContext`, which only exports `useGroups`. `npm run build` (`tsc -b && vite build`) fails until that is fixed (the same build also has four other TypeScript errors).
+- **CI is red** for the same reason, plus an outdated workflow (Node 18 with Vite 7, and a `tsc --noEmit` step that checks nothing because the root `tsconfig.json` has `"files": []`).
+- The unit and component tests pass locally (25 files, 74 tests with `npx vitest run`), but most component tests mock the API layer, so they do not exercise the database policies, the edge functions, or the realtime provider.
 
 ---
 
 ## Features
 
-### Expense Management
+### Expenses and splitting
 
-**5 Split Methods** — Handle any splitting scenario:
-1. **Equal**: Split evenly among N people (e.g., $100 ÷ 4 = $25 each)
-2. **Exact**: Specify exact amounts per person (e.g., Alice $30, Bob $70)
-3. **Percentage**: Split by percentages (e.g., Alice 60%, Bob 40%)
-4. **Shares**: Weight-based splitting (e.g., Alice 2 shares, Bob 1 share)
-5. **Adjustment**: Fixed adjustments on top of equal split (e.g., +$5 for Alice, -$5 for Bob)
+Five split methods, all stored in integer cents (`amount_cents INTEGER CHECK (amount_cents > 0)`):
 
-**Penny-Perfect Rounding**:
-- Ensures total split amounts always equal the original expense
-- Distributes rounding errors fairly (largest-remainder method)
-- Example: $100 split 3 ways → $33.34, $33.33, $33.33 (not $33.33 × 3 = $99.99)
+1. **Equal**: split evenly; any leftover cents go to the first people in the list (e.g. $100.00 across 3 people is $33.34, $33.33, $33.33)
+2. **Exact**: specify an amount per person; the total must match the expense
+3. **Percentage**: percentages must sum to 100
+4. **Shares**: weight-based (e.g. 2 shares vs 1 share)
+5. **Adjustment** (labelled "Reimburse" in the UI): one person owes the full amount to the payer
 
-**Receipt Uploads**:
-- Upload photos via Supabase Storage
-- Public bucket with row-level security
-- Automatic file validation and size limits
+Percentage and shares splits use largest-remainder rounding: amounts are rounded down to whole cents, and the remaining cents go to the people with the largest fractional parts (ties broken deterministically by person id), so the splits always sum to the expense total. The logic is in `src/lib/api/expenses.ts`.
 
-**Recurring Templates**:
-- Save frequently used expenses (rent, utilities, subscriptions)
-- Manual generation (automated cron coming soon)
+Other expense features:
+- Receipt upload to a Supabase Storage bucket named `receipts`
+- Expense categories
+- Recurring expense templates, generated on demand from the UI
+- CSV export of expenses, settlements, balances, and tasks
 
-### Balance Tracking
+### Balances and settlements
+- Net balance per person and pairwise balances, computed in `src/lib/api/balances.ts` from expenses, splits, and settlements
+- Settlement recording
 
-**Net Balances**:
-- See who owes money overall vs. who is owed
-- Visual indicators (red for owes, green for owed)
+### Groups and people
+- Personal and household groups, with a group switcher
+- Admin and member roles; admins can rename or delete a group
+- Token-based invitations with an expiry date (7 days by default), accepted through the `accept-invite` edge function
+- Placeholder people (for example, someone added by name before they sign up) and a `merge-people` edge function that combines duplicates and writes an audit record
 
-**Pairwise Balances**:
-- Detailed breakdown of who owes whom
-- Example: "Alice owes Bob $45.67"
-
-**Settlement Recording**:
-- Mark balances as settled when paid
-- Keeps audit trail of all transactions
-
-### Household Management
-
-**Groups**:
-- Personal group for individual expenses
-- Household groups for shared expenses
-- Quick group switcher
-- Rename, leave, or delete groups (admin only)
-
-**Invite System**:
-- Generate invite codes with expiration
-- Email-based placeholder creation
-- Automatic placeholder claim on signup
-
-**Admin Tools**:
-- **CSV Exports**: Download all expenses with full details
-- **Merge People**: Combine duplicate entries with audit logs
-- **Placeholder Management**: Convert email placeholders to real users
-
-### Task Management
-
-**Basic Task Tracking**:
-- Create, edit, and delete tasks
-- Assign to household members
-- Set status (todo, in progress, done) and priority
+### Tasks
+- Create, edit, and delete tasks with assignee, status (`todo`, `in_progress`, `completed`), and priority
 - Filters and search
 - Recurring task templates
+
+### In-app notifications
+A notification center backed by browser local storage. The `send-notification-email` edge function is a stub: it logs the email it would send, and the email provider call is commented out.
 
 ---
 
 ## Architecture
 
-### Tech Stack
+**Front end**: React 19, TypeScript, Vite 7, React Router, TanStack Query, React Hook Form, Tailwind CSS. Tests use Vitest and React Testing Library.
 
-**Frontend**:
-- React 19 with TypeScript
-- Vite for build tooling
-- React Router for navigation
-- Vitest + React Testing Library for testing
+**Back end** (all under `supabase/`):
+- Postgres schema in `migrations/`: `users`, `groups`, `group_members`, `group_people`, `expenses`, `expense_splits`, `settlements`, `invitations`, `tasks`, `recurring_expenses`, `recurring_tasks`, `expense_categories`, and others
+- Row-level security enabled on the tables, with `SECURITY DEFINER` helper functions for membership and admin checks
+- Edge functions in `functions/`: `accept-invite`, `merge-people`, `generate-recurring`, `send-notification-email`
 
-**Backend**:
-- Supabase (PostgreSQL + Auth + Storage + Edge Functions)
-- Row-Level Security for data protection
-- Edge Functions for server-side logic
-
-**Testing**:
-- 25 test files covering:
-  - Financial calculation logic
-  - Balance computation
-  - Component rendering
-  - Split method accuracy
-
-### Database Schema
-
-```
-users
-├── id (uuid, PK)
-├── email (text)
-├── name (text)
-└── created_at (timestamp)
-
-groups
-├── id (uuid, PK)
-├── name (text)
-├── created_by (uuid, FK → users)
-└── created_at (timestamp)
-
-group_members
-├── group_id (uuid, FK → groups)
-├── user_id (uuid, FK → users)
-├── role (text: 'admin' | 'member')
-└── joined_at (timestamp)
-
-expenses
-├── id (uuid, PK)
-├── group_id (uuid, FK → groups)
-├── description (text)
-├── amount (numeric)
-├── payer_id (uuid, FK → users)
-├── split_method (text)
-├── split_details (jsonb)
-├── receipt_url (text)
-└── created_at (timestamp)
-
-balances
-├── group_id (uuid, FK → groups)
-├── user_from (uuid, FK → users)
-├── user_to (uuid, FK → users)
-├── amount (numeric)
-└── updated_at (timestamp)
-```
-
-### Split Method Implementation
-
-All split calculations are in `/src/utils/splitCalculations.ts`:
-
-```typescript
-export function calculateSplit(
-  amount: number,
-  method: SplitMethod,
-  participants: Participant[]
-): SplitResult[] {
-  // Returns array of {userId, amount} ensuring sum equals original amount
-}
-```
-
-**Rounding Algorithm** (Largest Remainder Method):
-1. Calculate ideal amounts (may have fractions)
-2. Round down all amounts to nearest cent
-3. Calculate total shortage
-4. Distribute shortage (1 cent each) to participants with largest remainders
+**Realtime**: `RealtimeContext` and `useRealtimeSubscription` subscribe to Supabase Realtime changes. This is the code that currently breaks the build (see Status).
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
+- Node.js 20+ and npm
+- A Supabase project
 
-- Node.js 18+
-- npm or yarn
-- Supabase account
-
-### Installation
+### Install and configure
 
 ```bash
-# Clone the repository
 git clone https://github.com/harishm17/task-manager.git
 cd task-manager
-
-# Install dependencies
 npm install
+cp .env.example .env
 ```
 
-### Environment Setup
-
-Create a `.env` file based on `.env.example`:
+Set these in `.env`:
 
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### Database Setup
-
-1. Create a Supabase project
-2. Apply migrations:
+### Database
 
 ```bash
-# Install Supabase CLI
 npm install -g supabase
-
-# Link to your project
 supabase link --project-ref your-project-ref
-
-# Apply migrations
 supabase db push
 ```
 
-3. Create storage bucket:
-   - Go to Supabase Dashboard → Storage
-   - Create a public bucket named `receipts`
-   - Enable RLS policies
+The migrations do not create the receipts bucket. In the Supabase dashboard, create a Storage bucket named `receipts` (the code reads public URLs from it) and add storage policies.
 
-### Edge Functions
-
-Deploy Edge Functions for admin operations:
+### Edge functions
 
 ```bash
-# Deploy accept-invite function
 supabase functions deploy accept-invite
-
-# Deploy merge-people function
 supabase functions deploy merge-people
 ```
 
-### Run Development Server
+`generate-recurring` and `send-notification-email` are also in `supabase/functions/` but are not called from the front end.
+
+### Run
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:5173`
+Open `http://localhost:5173`.
 
 ---
 
 ## Testing
 
-**Test Suite**: 25 test files with comprehensive coverage
-
-### Run Tests
-
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+npm test          # Vitest in watch mode
+npm run test:run  # single run
 ```
 
-### Test Categories
+Tests live in `src/__tests__/`. Logic tests (`balances.test.ts`, `expense-splits.test.ts`, `recurring.test.ts`, `exports.test.ts`) cover the split, balance, recurrence, and export code directly. The remaining files are React Testing Library component tests with the API layer mocked. There are no tests for the SQL policies or edge functions.
 
-**Unit Tests**:
-- `splitCalculations.test.ts` — All 5 split methods
-- `balanceCalculations.test.ts` — Net and pairwise balance logic
-- `roundingAlgorithm.test.ts` — Penny-perfect rounding
-
-**Component Tests**:
-- `ExpenseForm.test.tsx` — Form validation and submission
-- `BalanceCard.test.tsx` — Balance display rendering
-- `SplitMethodSelector.test.tsx` — Split method UI
-
-**Integration Tests**:
-- `ExpenseFlow.test.tsx` — Full expense creation and balance update
-- `SettlementFlow.test.tsx` — Settlement recording workflow
-
-### Example Test
-
-```typescript
-describe('Equal Split Method', () => {
-  it('should split $100 equally among 3 people with correct rounding', () => {
-    const result = calculateSplit(100, 'equal', [
-      { id: '1', name: 'Alice' },
-      { id: '2', name: 'Bob' },
-      { id: '3', name: 'Charlie' }
-    ]);
-
-    expect(result).toEqual([
-      { userId: '1', amount: 33.34 },
-      { userId: '2', amount: 33.33 },
-      { userId: '3', amount: 33.33 }
-    ]);
-
-    // Verify total equals original amount
-    const total = result.reduce((sum, r) => sum + r.amount, 0);
-    expect(total).toBe(100);
-  });
-});
-```
-
----
-
-## Development Scripts
+## Scripts
 
 ```bash
-npm run dev          # Start dev server (Vite)
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run test         # Run tests
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Generate coverage report
+npm run dev        # Vite dev server
+npm run build      # tsc -b && vite build (currently failing, see Status)
+npm run preview    # Preview a build
+npm run lint       # ESLint
+npm run test       # Vitest (watch)
+npm run test:run   # Vitest (single run)
+npm run seed:demo  # Seed demo data (scripts/seed-demo-data.ts)
 ```
 
 ---
 
 ## Deployment
 
-### Production Deployment to Google Cloud Run
+The repo includes a multi-stage `Dockerfile` (Node build, then nginx), `deploy.sh` for Google Cloud Run, `cloudbuild.yaml`, and a `netlify.toml`. Because the build currently fails on `main`, none of these paths will produce an image or bundle until the build error is fixed.
 
-DivvyDo is production-ready with Docker containerization and automated deployment to GCP Cloud Run.
+### Google Cloud Run
 
-#### Prerequisites
+Requires the gcloud CLI, Docker, and a GCP project.
 
-- [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed and configured
-- [Docker](https://docs.docker.com/get-docker/) installed
-- Google Cloud Platform project with billing enabled
-- Supabase project set up
-
-#### Quick Deploy
-
-1. **Set your GCP project**:
 ```bash
 gcloud config set project YOUR_PROJECT_ID
-```
-
-2. **Set environment variables**:
-```bash
 export VITE_SUPABASE_URL="https://your-project.supabase.co"
 export VITE_SUPABASE_ANON_KEY="your-anon-key"
-```
-
-3. **Deploy**:
-```bash
 ./deploy.sh
 ```
 
-The script will:
-- Build the Docker image
-- Push to Google Container Registry
-- Deploy to Cloud Run with optimized settings (512Mi memory, 1 CPU, auto-scaling)
-- Configure environment variables
-- Output your live URL
+`deploy.sh` builds the image, pushes it to Google Container Registry, and deploys to Cloud Run (512Mi memory, 1 CPU, 0 to 10 instances). The container injects the Supabase variables at startup (`docker-entrypoint.sh`), and nginx serves a `/health` endpoint.
 
-#### Local Docker Testing
-
-Test the Docker build locally before deploying:
+To test the container locally:
 
 ```bash
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your Supabase credentials
-
-# Run locally
-./deploy-local.sh
-
-# Access at http://localhost:8080
-# Health check: http://localhost:8080/health
+cp .env.example .env   # fill in your Supabase values
+./deploy-local.sh      # http://localhost:8080, health check at /health
 ```
 
-#### CI/CD with Cloud Build
+### Netlify
 
-Automatic deployment on git push using Cloud Build:
-
-1. **Connect repository**:
-```bash
-gcloud builds connect --region=us-central1
-```
-
-2. **Create trigger**:
-   - Go to Cloud Build → Triggers in GCP Console
-   - Create trigger from `cloudbuild.yaml`
-   - Add substitution variables:
-     - `_SUPABASE_URL`: Your Supabase URL
-     - `_SUPABASE_ANON_KEY`: Your Supabase anon key
-
-3. **Push to deploy**:
-```bash
-git push origin main
-```
-
-#### Manual Commands
-
-**Update environment variables**:
-```bash
-gcloud run services update divvydo \
-  --region us-central1 \
-  --update-env-vars VITE_SUPABASE_URL=...,VITE_SUPABASE_ANON_KEY=...
-```
-
-**Get service URL**:
-```bash
-gcloud run services describe divvydo \
-  --region us-central1 \
-  --format 'value(status.url)'
-```
-
-**View logs**:
-```bash
-gcloud run services logs read divvydo --region us-central1
-```
-
-#### Docker Architecture
-
-**Multi-stage Build**:
-1. Node.js builder stage compiles Vite application
-2. Nginx production stage serves static files
-
-**Runtime Environment Injection**:
-- Environment variables injected at container startup
-- No rebuild needed for config changes
-- Creates `env-config.js` and injects into `index.html`
-
-**Health Checks**:
-- `/health` endpoint for Cloud Run health monitoring
-- Automatic container restart on failures
-
-**Optimizations**:
-- Gzip compression for all text assets
-- 1-year cache headers for immutable assets
-- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
-
-#### Alternative Deployment: Netlify
-
-For simpler deployment without Docker:
-
-1. Connect GitHub repository to Netlify
-2. Configure environment variables in Netlify dashboard
-3. Build command: `npm run build`
-4. Publish directory: `dist`
-
-### Build Command
-
-```bash
-npm run build
-```
-
-**Output**: `dist/` directory
+Connect the repository, set the two environment variables, use `npm run build` as the build command and `dist` as the publish directory.
 
 ---
 
-## Roadmap
+## Not implemented
 
-### Current Progress
-
-Auth + profile (signup, signin, password reset)
-Groups (personal + household, switcher, admin controls)
-Tasks (create/edit/delete, assignees, filters, recurring)
-Expenses (5 split methods, receipts, recurring, reports)
-Balances (net + pairwise, settlement recording)
-Admin tools (invites, placeholders, merge, CSV exports)
-Test suite (25 test files)
-
-### Not Yet Implemented
-
-- [ ] Real-time updates (Supabase Realtime)
-- [ ] Notifications (in-app + email)
-- [ ] Automated recurring generation (cron jobs)
-- [ ] Mobile app (React Native)
-- [ ] Budget tracking
-- [ ] Expense categories with budgets
+- Automated (scheduled) recurring generation: it runs only on demand from the UI
+- Sending notification emails
+- Budgets
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
+No license file is currently included in this repository.
 
 ## Author
 
 **Harish Manoharan**
 - GitHub: [@harishm17](https://github.com/harishm17)
 - LinkedIn: [linkedin.com/in/harishm17](https://linkedin.com/in/harishm17)
-- Email: harish.manoharan@utdallas.edu
+- Email: harish_manoharan@outlook.com
 - Portfolio: [harishm17.github.io](https://harishm17.github.io)
